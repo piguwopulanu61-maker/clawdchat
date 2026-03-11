@@ -144,8 +144,8 @@ nav button.active, nav button:hover { background: var(--accent); color: white; b
 .settings-panel h3 { color: var(--text2); font-size: 16px; margin-bottom: 20px; text-align: center; }
 .settings-field { margin-bottom: 16px; }
 .settings-field label { display: block; font-size: 12px; color: var(--text4); margin-bottom: 6px; }
-.settings-field input { width: 100%; padding: 10px 12px; border: 1px solid var(--border3); border-radius: 10px; background: var(--bg); color: var(--text); font-size: 14px; font-family: monospace; outline: none; }
-.settings-field input:focus { border-color: var(--accent); }
+.settings-field input, .settings-field select { width: 100%; padding: 10px 12px; border: 1px solid var(--border3); border-radius: 10px; background: var(--bg); color: var(--text); font-size: 14px; font-family: monospace; outline: none; appearance: auto; }
+.settings-field input:focus, .settings-field select:focus { border-color: var(--accent); }
 .settings-field input::placeholder { color: var(--text5); }
 .settings-hint { font-size: 11px; color: var(--text5); margin-top: 4px; }
 .settings-actions { display: flex; gap: 10px; margin-top: 20px; }
@@ -181,15 +181,23 @@ nav button.active, nav button:hover { background: var(--accent); color: white; b
   <div class="settings-panel">
     <h3>API 设置</h3>
     <div class="settings-field">
+      <label>服务商</label>
+      <select id="cfg-provider" onchange="onProviderChange()">
+        <option value="openai">OpenAI / 兼容接口</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="google">Google (Gemini)</option>
+      </select>
+    </div>
+    <div class="settings-field">
       <label>API Key</label>
       <input type="password" id="cfg-key" placeholder="sk-...">
     </div>
-    <div class="settings-field">
+    <div class="settings-field" id="field-base">
       <label>Base URL</label>
       <input type="text" id="cfg-base" placeholder="https://api.openai.com">
-      <div class="settings-hint">OpenAI 兼容接口地址</div>
+      <div class="settings-hint" id="hint-base">留空则使用默认地址</div>
     </div>
-    <div class="settings-field">
+    <div class="settings-field" id="field-path">
       <label>Path</label>
       <input type="text" id="cfg-path" placeholder="/v1/chat/completions">
     </div>
@@ -589,12 +597,31 @@ function showSection(id) {
 }
 
 // --- Settings ---
+const PROVIDER_DEFAULTS = {
+  openai:    { base: 'https://api.openai.com', path: '/v1/chat/completions', model: 'gpt-3.5-turbo', keyHint: 'sk-...' },
+  anthropic: { base: 'https://api.anthropic.com', path: '/v1/messages', model: 'claude-sonnet-4-20250514', keyHint: 'sk-ant-...' },
+  google:    { base: 'https://generativelanguage.googleapis.com', path: '/v1beta/models/{model}:generateContent', model: 'gemini-2.0-flash', keyHint: 'AIza...' }
+};
+
+function onProviderChange() {
+  const p = document.getElementById('cfg-provider').value;
+  const d = PROVIDER_DEFAULTS[p];
+  document.getElementById('cfg-key').placeholder = d.keyHint;
+  document.getElementById('cfg-base').placeholder = d.base;
+  document.getElementById('cfg-path').placeholder = d.path;
+  document.getElementById('cfg-model').placeholder = d.model;
+  // Google doesn't need separate path field (it's baked into URL with model)
+  document.getElementById('field-path').style.display = p === 'google' ? 'none' : '';
+}
+
 function openSettings() {
   const cfg = JSON.parse(localStorage.getItem('clawd-api') || '{}');
+  document.getElementById('cfg-provider').value = cfg.provider || 'openai';
   document.getElementById('cfg-key').value = cfg.key || '';
   document.getElementById('cfg-base').value = cfg.base || '';
   document.getElementById('cfg-path').value = cfg.path || '';
   document.getElementById('cfg-model').value = cfg.model || '';
+  onProviderChange();
   document.getElementById('settings-overlay').classList.add('open');
 }
 function closeSettings() {
@@ -602,6 +629,7 @@ function closeSettings() {
 }
 function saveSettings() {
   const cfg = {
+    provider: document.getElementById('cfg-provider').value,
     key: document.getElementById('cfg-key').value.trim(),
     base: document.getElementById('cfg-base').value.trim(),
     path: document.getElementById('cfg-path').value.trim(),
@@ -612,11 +640,14 @@ function saveSettings() {
 }
 function getApiConfig() {
   const cfg = JSON.parse(localStorage.getItem('clawd-api') || '{}');
+  const p = cfg.provider || 'openai';
+  const d = PROVIDER_DEFAULTS[p];
   return {
+    provider: p,
     key: cfg.key || '',
-    base: (cfg.base || 'https://api.openai.com').replace(/\/+$/, ''),
-    path: cfg.path || '/v1/chat/completions',
-    model: cfg.model || 'gpt-3.5-turbo'
+    base: (cfg.base || d.base).replace(/\/+$/, ''),
+    path: cfg.path || d.path,
+    model: cfg.model || d.model
   };
 }
 
@@ -647,6 +678,55 @@ function addBubble(text, cls) {
   return el;
 }
 
+// Provider-specific request builders
+function buildOpenAIRequest(cfg, messages) {
+  return {
+    url: cfg.base + cfg.path,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+    body: { model: cfg.model, messages: messages, max_tokens: 2048 }
+  };
+}
+
+function buildAnthropicRequest(cfg, messages) {
+  return {
+    url: cfg.base + cfg.path,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': cfg.key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: { model: cfg.model, messages: messages, max_tokens: 2048 }
+  };
+}
+
+function buildGoogleRequest(cfg, messages) {
+  const url = cfg.base + '/v1beta/models/' + cfg.model + ':generateContent?key=' + cfg.key;
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+  return {
+    url: url,
+    headers: { 'Content-Type': 'application/json' },
+    body: { contents: contents, generationConfig: { maxOutputTokens: 2048 } }
+  };
+}
+
+function extractReply(provider, data) {
+  if (provider === 'google') {
+    const c = data.candidates && data.candidates[0];
+    return c && c.content && c.content.parts && c.content.parts[0]
+      ? c.content.parts[0].text : '(空回复)';
+  }
+  if (provider === 'anthropic') {
+    return data.content && data.content[0] ? data.content[0].text : '(空回复)';
+  }
+  // openai
+  return data.choices && data.choices[0] && data.choices[0].message
+    ? data.choices[0].message.content : '(空回复)';
+}
+
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
@@ -669,18 +749,13 @@ async function sendChat() {
   typing.style.display = 'block';
 
   try {
-    const url = cfg.base + cfg.path;
-    const res = await fetch(url, {
+    const builders = { openai: buildOpenAIRequest, anthropic: buildAnthropicRequest, google: buildGoogleRequest };
+    const req = (builders[cfg.provider] || buildOpenAIRequest)(cfg, chatHistory);
+
+    const res = await fetch(req.url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + cfg.key
-      },
-      body: JSON.stringify({
-        model: cfg.model,
-        messages: chatHistory,
-        max_tokens: 2048
-      })
+      headers: req.headers,
+      body: JSON.stringify(req.body)
     });
 
     if (!res.ok) {
@@ -689,9 +764,7 @@ async function sendChat() {
     }
 
     const data = await res.json();
-    const reply = data.choices && data.choices[0] && data.choices[0].message
-      ? data.choices[0].message.content
-      : '(空回复)';
+    const reply = extractReply(cfg.provider, data);
     chatHistory.push({ role: 'assistant', content: reply });
     addBubble(reply, 'bot');
   } catch (e) {
