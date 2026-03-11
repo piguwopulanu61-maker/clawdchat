@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clawd English</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+
+/* Nav */
+nav { display: flex; justify-content: center; gap: 8px; padding: 16px; background: #1a1a2e; border-bottom: 1px solid #2a2a4a; position: sticky; top: 0; z-index: 10; }
+nav button { padding: 10px 20px; border: 1px solid #3a3a5a; border-radius: 20px; background: transparent; color: #a0a0c0; cursor: pointer; font-size: 15px; transition: all 0.3s; }
+nav button.active, nav button:hover { background: #6c5ce7; color: white; border-color: #6c5ce7; }
+
+/* Sections */
+.section { display: none; max-width: 520px; margin: 0 auto; padding: 24px 16px; }
+.section.active { display: block; }
+
+/* Stats bar */
+.stats-bar { display: flex; justify-content: space-around; padding: 16px; background: #1a1a2e; border-radius: 12px; margin-bottom: 24px; }
+.stat { text-align: center; }
+.stat-num { font-size: 28px; font-weight: 700; color: #6c5ce7; }
+.stat-label { font-size: 12px; color: #808090; margin-top: 4px; }
+
+/* Flashcard */
+.card-container { perspective: 1000px; margin: 24px 0; }
+.card { width: 100%; min-height: 280px; position: relative; cursor: pointer; transition: transform 0.6s; transform-style: preserve-3d; }
+.card.flipped { transform: rotateY(180deg); }
+.card-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; backface-visibility: hidden; }
+.card-front { background: linear-gradient(135deg, #1e1e3a, #2a2a4e); border: 1px solid #3a3a5a; }
+.card-back { background: linear-gradient(135deg, #2a1e3a, #3a2a4e); border: 1px solid #4a3a5a; transform: rotateY(180deg); }
+.card-word { font-size: 36px; font-weight: 700; color: white; margin-bottom: 8px; }
+.card-phonetic { font-size: 16px; color: #a0a0c0; margin-bottom: 4px; }
+.card-category { font-size: 12px; color: #6c5ce7; background: rgba(108,92,231,0.15); padding: 4px 12px; border-radius: 10px; }
+.card-meaning { font-size: 24px; font-weight: 600; color: #a29bfe; margin-bottom: 16px; }
+.card-example { font-size: 14px; color: #b0b0c0; text-align: center; line-height: 1.6; font-style: italic; }
+.card-hint { font-size: 13px; color: #606080; margin-top: 20px; }
+
+/* Rating buttons */
+.rating { display: flex; gap: 10px; margin-top: 16px; }
+.rating button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.rating button:active { transform: scale(0.95); }
+.btn-hard { background: #e74c3c; color: white; }
+.btn-ok { background: #f39c12; color: white; }
+.btn-easy { background: #2ecc71; color: white; }
+.btn-hard:hover { background: #c0392b; }
+.btn-ok:hover { background: #e67e22; }
+.btn-easy:hover { background: #27ae60; }
+
+/* Progress bar */
+.progress-wrap { margin-top: 16px; }
+.progress-bar { height: 6px; background: #2a2a4a; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #6c5ce7, #a29bfe); border-radius: 3px; transition: width 0.3s; }
+.progress-text { font-size: 12px; color: #606080; text-align: center; margin-top: 6px; }
+
+/* Quiz */
+.quiz-question { text-align: center; padding: 32px; background: #1a1a2e; border-radius: 16px; margin-bottom: 20px; }
+.quiz-word { font-size: 32px; font-weight: 700; color: white; margin-bottom: 8px; }
+.quiz-phonetic { font-size: 15px; color: #808090; }
+.quiz-type { font-size: 13px; color: #6c5ce7; margin-top: 12px; }
+.quiz-options { display: flex; flex-direction: column; gap: 10px; }
+.quiz-option { padding: 16px; background: #1a1a2e; border: 1px solid #3a3a5a; border-radius: 12px; cursor: pointer; font-size: 16px; text-align: center; transition: all 0.2s; }
+.quiz-option:hover { border-color: #6c5ce7; background: #22223a; }
+.quiz-option.correct { background: #27ae60; border-color: #2ecc71; color: white; }
+.quiz-option.wrong { background: #c0392b; border-color: #e74c3c; color: white; }
+.quiz-option.reveal { border-color: #2ecc71; background: rgba(46,204,113,0.1); }
+.quiz-result { text-align: center; padding: 20px; margin-top: 16px; border-radius: 12px; font-size: 16px; }
+.quiz-next { display: block; width: 100%; padding: 14px; margin-top: 16px; background: #6c5ce7; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+.quiz-next:hover { background: #5b4bd5; }
+.quiz-score { text-align: center; padding: 24px; background: #1a1a2e; border-radius: 16px; margin-bottom: 20px; }
+.quiz-score-num { font-size: 48px; font-weight: 700; }
+.quiz-mode-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+.quiz-mode-toggle button { flex: 1; padding: 10px; border: 1px solid #3a3a5a; border-radius: 10px; background: transparent; color: #a0a0c0; cursor: pointer; font-size: 13px; }
+.quiz-mode-toggle button.active { background: #6c5ce7; color: white; border-color: #6c5ce7; }
+
+/* Daily sentence */
+.daily-card { background: linear-gradient(135deg, #1e1e3a, #2e1e3e); border: 1px solid #3a3a5a; border-radius: 16px; padding: 32px 24px; text-align: center; }
+.daily-en { font-size: 20px; color: white; line-height: 1.6; margin-bottom: 20px; font-style: italic; }
+.daily-cn { font-size: 16px; color: #a0a0c0; margin-bottom: 24px; }
+.daily-grammar { background: rgba(108,92,231,0.1); border: 1px solid #3a3a5a; border-radius: 12px; padding: 16px; margin-top: 16px; text-align: left; }
+.daily-grammar h4 { color: #6c5ce7; margin-bottom: 8px; font-size: 14px; }
+.daily-grammar p { color: #b0b0c0; font-size: 14px; line-height: 1.6; }
+.daily-refresh { display: block; width: 100%; padding: 14px; margin-top: 20px; background: #6c5ce7; color: white; border: none; border-radius: 12px; font-size: 15px; cursor: pointer; }
+.daily-refresh:hover { background: #5b4bd5; }
+.daily-date { font-size: 12px; color: #606080; margin-bottom: 16px; }
+
+/* Category filter */
+.filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.filter-bar button { padding: 6px 14px; border: 1px solid #3a3a5a; border-radius: 16px; background: transparent; color: #a0a0c0; cursor: pointer; font-size: 12px; }
+.filter-bar button.active { background: #6c5ce7; color: white; border-color: #6c5ce7; }
+
+/* Reset button */
+.reset-btn { display: block; margin: 32px auto 0; padding: 10px 24px; background: transparent; border: 1px solid #3a3a5a; color: #606080; border-radius: 10px; font-size: 13px; cursor: pointer; }
+.reset-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+
+/* Empty state */
+.empty { text-align: center; padding: 48px; color: #606080; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="active" onclick="showSection('flashcard')">闪卡</button>
+  <button onclick="showSection('quiz')">测验</button>
+  <button onclick="showSection('daily')">每日一句</button>
+</nav>
+
+<div id="flashcard" class="section active">
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">总词数</div></div>
+    <div class="stat"><div class="stat-num" id="stat-learned">0</div><div class="stat-label">已掌握</div></div>
+    <div class="stat"><div class="stat-num" id="stat-review">0</div><div class="stat-label">待复习</div></div>
+  </div>
+  <div class="filter-bar" id="filter-bar"></div>
+  <div class="card-container">
+    <div class="card" id="flashcard-card" onclick="flipCard()">
+      <div class="card-face card-front">
+        <div class="card-word" id="fc-word"></div>
+        <div class="card-phonetic" id="fc-phonetic"></div>
+        <div class="card-category" id="fc-category"></div>
+        <div class="card-hint">点击翻转</div>
+      </div>
+      <div class="card-face card-back">
+        <div class="card-meaning" id="fc-meaning"></div>
+        <div class="card-example" id="fc-example"></div>
+      </div>
+    </div>
+  </div>
+  <div class="rating" id="rating-btns" style="display:none;">
+    <button class="btn-hard" onclick="rateCard(0)">不认识</button>
+    <button class="btn-ok" onclick="rateCard(1)">模糊</button>
+    <button class="btn-easy" onclick="rateCard(2)">认识</button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-text" id="progress-text"></div>
+  </div>
+  <div class="empty" id="fc-empty" style="display:none;">
+    <div class="empty-icon">&#127881;</div>
+    <div>今天的复习完成了！</div>
+  </div>
+  <button class="reset-btn" onclick="resetProgress()">重置学习进度</button>
+</div>
+
+<div id="quiz" class="section">
+  <div class="quiz-score">
+    <div>正确率</div>
+    <div class="quiz-score-num" id="quiz-accuracy">-</div>
+  </div>
+  <div class="quiz-mode-toggle">
+    <button class="active" onclick="setQuizMode('en2cn')">英→中</button>
+    <button onclick="setQuizMode('cn2en')">中→英</button>
+  </div>
+  <div class="quiz-question">
+    <div class="quiz-word" id="qz-word"></div>
+    <div class="quiz-phonetic" id="qz-phonetic"></div>
+  </div>
+  <div class="quiz-options" id="qz-options"></div>
+  <button class="quiz-next" id="qz-next" onclick="nextQuiz()" style="display:none;">下一题</button>
+</div>
+
+<div id="daily" class="section">
+  <div class="daily-card">
+    <div class="daily-date" id="daily-date"></div>
+    <div class="daily-en" id="daily-en"></div>
+    <div class="daily-cn" id="daily-cn"></div>
+    <div class="daily-grammar" id="daily-grammar">
+      <h4>语法要点</h4>
+      <p id="daily-grammar-text"></p>
+    </div>
+  </div>
+  <button class="daily-refresh" onclick="showDaily()">换一句</button>
+</div>
+
+<script>
+let words = [];
+let progress = {};
+let currentCard = null;
+let cardQueue = [];
+let quizMode = 'en2cn';
+let quizCorrect = 0;
+let quizTotal = 0;
+let currentFilter = '全部';
+
+const dailySentences = [
+  { en: "The only way to do great work is to love what you do.", cn: "做伟大工作的唯一方法是热爱你所做的事。", grammar: "不定式 to do / to love 作表语和主语，what 引导宾语从句。" },
+  { en: "In the middle of difficulty lies opportunity.", cn: "困难之中蕴藏着机遇。", grammar: "倒装句：正常语序是 Opportunity lies in the middle of difficulty. 介词短语提前引起全部倒装。" },
+  { en: "It is never too late to be what you might have been.", cn: "成为你本可以成为的人，永远不会太晚。", grammar: "too...to... 结构表示「太……而不能」；what 引导表语从句；might have been 虚拟语气。" },
+  { en: "The best time to plant a tree was 20 years ago. The second best time is now.", cn: "种一棵树最好的时间是二十年前，其次是现在。", grammar: "不定式 to plant 作后置定语修饰 time；was/is 对比过去与现在。" },
+  { en: "You miss 100% of the shots you don't take.", cn: "你不尝试的话，百分之百会错过。", grammar: "定语从句：you don't take 修饰 shots，省略了关系代词 that。" },
+  { en: "Whether you think you can or you think you can't, you're right.", cn: "无论你觉得你能还是不能，你都是对的。", grammar: "Whether...or... 让步状语从句；两个 think 后接宾语从句。" },
+  { en: "The journey of a thousand miles begins with a single step.", cn: "千里之行，始于足下。", grammar: "介词短语 of a thousand miles 作后置定语；begins with 固定搭配「以……开始」。" },
+  { en: "If you want to go fast, go alone. If you want to go far, go together.", cn: "想走得快，就一个人走；想走得远，就一起走。", grammar: "if 引导条件状语从句；want to 后接动词原形；fast/far 作副词修饰 go。" },
+  { en: "The more you learn, the more you realize how much you don't know.", cn: "学得越多，越意识到自己不知道的有多少。", grammar: "the more...the more... 比较级结构表示「越……越……」；how much 引导宾语从句。" },
+  { en: "Success is not final, failure is not fatal: it is the courage to continue that counts.", cn: "成功不是终点，失败不是致命的，重要的是继续前行的勇气。", grammar: "it is...that... 强调句型，强调 the courage to continue；不定式 to continue 作后置定语。" },
+  { en: "Don't judge each day by the harvest you reap but by the seeds that you plant.", cn: "不要以收获来评价每一天，而要以播种来评价。", grammar: "not...but... 并列结构；you reap 和 that you plant 都是定语从句修饰前面的名词。" },
+  { en: "Life is what happens to you while you're busy making other plans.", cn: "生活就是当你忙于制定其他计划时所发生的事。", grammar: "what 引导表语从句；while 引导时间状语从句；be busy doing 固定搭配。" },
+  { en: "You don't have to be great to start, but you have to start to be great.", cn: "你不必很出色才开始，但你必须开始才能变得出色。", grammar: "have to 表示「必须」；不定式 to start / to be great 作目的状语和表语。" },
+  { en: "The secret of getting ahead is getting started.", cn: "取得进步的秘诀就是开始行动。", grammar: "动名词 getting 作介词宾语和表语；ahead 作副词修饰 getting。" },
+  { en: "I have not failed. I've just found 10,000 ways that won't work.", cn: "我没有失败，我只是找到了一万种行不通的方法。", grammar: "现在完成时 have not failed / have found 表示过去到现在的经历；that 引导定语从句。" },
+  { en: "What you get by achieving your goals is not as important as what you become by achieving your goals.", cn: "你通过实现目标得到什么，远不如你在实现目标的过程中成为什么样的人重要。", grammar: "what 引导主语从句；not as...as... 比较结构；by doing 表示方式。" },
+  { en: "It does not matter how slowly you go as long as you do not stop.", cn: "只要你不停下来，走得多慢都没关系。", grammar: "It 形式主语，how slowly you go 是真正主语；as long as 引导条件状语从句。" },
+  { en: "A person who never made a mistake never tried anything new.", cn: "一个从不犯错的人，从来没有尝试过新事物。", grammar: "who 引导定语从句修饰 person；never 表示否定频率副词。" },
+  { en: "The difference between ordinary and extraordinary is that little extra.", cn: "普通和非凡之间的区别就在于那一点额外的努力。", grammar: "between...and... 介词短语作后置定语；that 指示代词强调 little extra。" },
+  { en: "Believe you can and you're halfway there.", cn: "相信你能做到，你就已经成功了一半。", grammar: "祈使句 + and + 陈述句结构，表示「如果……就……」；halfway 作副词表程度。" }
+];
+
+// Load words on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  fetch('words.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      words = data;
+      progress = JSON.parse(localStorage.getItem('clawd-progress') || '{}');
+      initApp();
+    })
+    .catch(function(e) {
+      console.error('Load failed:', e);
+      document.getElementById('fc-word').textContent = '加载失败: ' + e.message;
+    });
+});
+
+function initApp() {
+  buildFilterBar();
+  buildQueue();
+  showNextCard();
+  updateStats();
+  nextQuiz();
+  showDaily();
+}
+
+function saveProgress() {
+  localStorage.setItem('clawd-progress', JSON.stringify(progress));
+}
+
+// --- Filter ---
+function buildFilterBar() {
+  const cats = ['全部', ...new Set(words.map(w => w.category))];
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = cats.map(c =>
+    `<button class="${c === currentFilter ? 'active' : ''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setFilter(cat) {
+  currentFilter = cat;
+  buildFilterBar();
+  buildQueue();
+  showNextCard();
+  updateStats();
+}
+
+function getFilteredWords() {
+  if (currentFilter === '全部') return words;
+  return words.filter(w => w.category === currentFilter);
+}
+
+// --- Flashcard ---
+function buildQueue() {
+  const now = Date.now();
+  const filtered = getFilteredWords();
+  cardQueue = filtered.filter(w => {
+    const p = progress[w.word];
+    if (!p) return true;
+    if (p.level >= 5) return false;
+    return now >= (p.nextReview || 0);
+  });
+  // Shuffle
+  for (let i = cardQueue.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cardQueue[i], cardQueue[j]] = [cardQueue[j], cardQueue[i]];
+  }
+}
+
+function showNextCard() {
+  const card = document.getElementById('flashcard-card');
+  const empty = document.getElementById('fc-empty');
+  const rating = document.getElementById('rating-btns');
+  card.classList.remove('flipped');
+  rating.style.display = 'none';
+
+  if (cardQueue.length === 0) {
+    card.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  card.style.display = '';
+  empty.style.display = 'none';
+  currentCard = cardQueue[0];
+  document.getElementById('fc-word').textContent = currentCard.word;
+  document.getElementById('fc-phonetic').textContent = currentCard.phonetic;
+  document.getElementById('fc-category').textContent = currentCard.category;
+  document.getElementById('fc-meaning').textContent = currentCard.meaning;
+  document.getElementById('fc-example').textContent = currentCard.example;
+}
+
+function flipCard() {
+  const card = document.getElementById('flashcard-card');
+  if (!currentCard) return;
+  card.classList.toggle('flipped');
+  if (card.classList.contains('flipped')) {
+    document.getElementById('rating-btns').style.display = 'flex';
+  }
+}
+
+function rateCard(rating) {
+  if (!currentCard) return;
+  const w = currentCard.word;
+  if (!progress[w]) progress[w] = { level: 0, nextReview: 0 };
+
+  const intervals = [1, 3, 7, 14, 30]; // minutes for testing, days in prod
+  if (rating === 0) {
+    progress[w].level = 0;
+    progress[w].nextReview = Date.now() + 60000; // 1 min
+  } else if (rating === 1) {
+    progress[w].level = Math.max(0, progress[w].level);
+    progress[w].nextReview = Date.now() + 5 * 60000; // 5 min
+  } else {
+    progress[w].level = Math.min(5, progress[w].level + 1);
+    const days = intervals[Math.min(progress[w].level, intervals.length - 1)];
+    progress[w].nextReview = Date.now() + days * 86400000;
+  }
+  saveProgress();
+  cardQueue.shift();
+  updateStats();
+  showNextCard();
+}
+
+function updateStats() {
+  const filtered = getFilteredWords();
+  const total = filtered.length;
+  const learned = filtered.filter(w => progress[w.word] && progress[w.word].level >= 5).length;
+  const now = Date.now();
+  const review = filtered.filter(w => {
+    const p = progress[w.word];
+    if (!p) return true;
+    if (p.level >= 5) return false;
+    return now >= (p.nextReview || 0);
+  }).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-learned').textContent = learned;
+  document.getElementById('stat-review').textContent = review;
+  const pct = total > 0 ? (learned / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `已掌握 ${Math.round(pct)}%`;
+}
+
+function resetProgress() {
+  if (confirm('确定要重置所有学习进度吗？')) {
+    progress = {};
+    localStorage.removeItem('clawd-progress');
+    buildQueue();
+    showNextCard();
+    updateStats();
+    quizCorrect = 0;
+    quizTotal = 0;
+    document.getElementById('quiz-accuracy').textContent = '-';
+  }
+}
+
+// --- Quiz ---
+function setQuizMode(mode) {
+  quizMode = mode;
+  document.querySelectorAll('.quiz-mode-toggle button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  nextQuiz();
+}
+
+function nextQuiz() {
+  const opts = document.getElementById('qz-options');
+  const nextBtn = document.getElementById('qz-next');
+  nextBtn.style.display = 'none';
+
+  if (words.length < 4) return;
+  const idx = Math.floor(Math.random() * words.length);
+  const correct = words[idx];
+
+  // Pick 3 wrong answers
+  const wrongPool = words.filter((_, i) => i !== idx);
+  const wrongs = [];
+  while (wrongs.length < 3) {
+    const r = Math.floor(Math.random() * wrongPool.length);
+    if (!wrongs.includes(wrongPool[r])) wrongs.push(wrongPool[r]);
+  }
+
+  const options = [correct, ...wrongs];
+  // Shuffle options
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  if (quizMode === 'en2cn') {
+    document.getElementById('qz-word').textContent = correct.word;
+    document.getElementById('qz-phonetic').textContent = correct.phonetic;
+    opts.innerHTML = options.map((o, i) =>
+      `<div class="quiz-option" onclick="checkQuiz(this, ${o === correct}, '${correct.meaning.replace(/'/g, "\\'")}')">${o.meaning}</div>`
+    ).join('');
+  } else {
+    document.getElementById('qz-word').textContent = correct.meaning;
+    document.getElementById('qz-phonetic').textContent = '';
+    opts.innerHTML = options.map((o, i) =>
+      `<div class="quiz-option" onclick="checkQuiz(this, ${o === correct}, '${correct.word}')">${o.word}</div>`
+    ).join('');
+  }
+}
+
+function checkQuiz(el, isCorrect, correctAnswer) {
+  const opts = document.querySelectorAll('.quiz-option');
+  if (el.classList.contains('correct') || el.classList.contains('wrong')) return;
+
+  quizTotal++;
+  if (isCorrect) {
+    el.classList.add('correct');
+    quizCorrect++;
+  } else {
+    el.classList.add('wrong');
+    opts.forEach(o => {
+      const text = o.textContent;
+      if (text === correctAnswer) o.classList.add('reveal');
+    });
+  }
+  // Disable all
+  opts.forEach(o => o.style.pointerEvents = 'none');
+  document.getElementById('qz-next').style.display = 'block';
+
+  const pct = quizTotal > 0 ? Math.round(quizCorrect / quizTotal * 100) + '%' : '-';
+  document.getElementById('quiz-accuracy').textContent = pct;
+}
+
+// --- Daily ---
+function showDaily() {
+  const idx = Math.floor(Math.random() * dailySentences.length);
+  const s = dailySentences[idx];
+  const now = new Date();
+  document.getElementById('daily-date').textContent = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  document.getElementById('daily-en').textContent = `"${s.en}"`;
+  document.getElementById('daily-cn').textContent = s.cn;
+  document.getElementById('daily-grammar-text').textContent = s.grammar;
+}
+
+// --- Navigation ---
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
