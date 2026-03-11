@@ -132,16 +132,83 @@ nav button.active, nav button:hover { background: var(--accent); color: white; b
 /* Empty state */
 .empty { text-align: center; padding: 48px; color: var(--text5); }
 .empty-icon { font-size: 48px; margin-bottom: 16px; }
+
+/* Settings gear */
+.settings-btn { position: fixed; top: 16px; left: 16px; z-index: 20; width: 28px; height: 28px; border: none; background: none; cursor: pointer; opacity: 0.4; transition: all 0.3s; font-size: 20px; color: var(--text3); }
+.settings-btn:hover { opacity: 0.8; transform: rotate(45deg); }
+
+/* Settings panel */
+.settings-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; }
+.settings-overlay.open { display: flex; align-items: center; justify-content: center; }
+.settings-panel { background: var(--bg2); border-radius: 16px; padding: 28px 24px; width: 90%; max-width: 400px; border: 1px solid var(--border); }
+.settings-panel h3 { color: var(--text2); font-size: 16px; margin-bottom: 20px; text-align: center; }
+.settings-field { margin-bottom: 16px; }
+.settings-field label { display: block; font-size: 12px; color: var(--text4); margin-bottom: 6px; }
+.settings-field input { width: 100%; padding: 10px 12px; border: 1px solid var(--border3); border-radius: 10px; background: var(--bg); color: var(--text); font-size: 14px; font-family: monospace; outline: none; }
+.settings-field input:focus { border-color: var(--accent); }
+.settings-field input::placeholder { color: var(--text5); }
+.settings-hint { font-size: 11px; color: var(--text5); margin-top: 4px; }
+.settings-actions { display: flex; gap: 10px; margin-top: 20px; }
+.settings-actions button { flex: 1; padding: 10px; border-radius: 10px; font-size: 14px; cursor: pointer; border: none; }
+.settings-save { background: var(--accent); color: white; }
+.settings-save:hover { background: var(--accent2); }
+.settings-cancel { background: transparent; border: 1px solid var(--border3) !important; color: var(--text4); }
+
+/* Chat */
+.chat-container { display: flex; flex-direction: column; height: calc(100vh - 70px); max-width: 520px; margin: 0 auto; padding: 0 16px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; }
+.chat-empty { text-align: center; padding: 48px 0; color: var(--text5); font-size: 14px; }
+.chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; margin-bottom: 10px; font-size: 15px; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap; }
+.chat-bubble.user { background: var(--accent); color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+.chat-bubble.bot { background: var(--bg2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.chat-bubble.error { background: rgba(212,160,160,0.15); color: var(--btn-hard); border: 1px solid var(--btn-hard); font-size: 13px; }
+.chat-input-wrap { display: flex; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border); }
+.chat-input-wrap textarea { flex: 1; padding: 10px 14px; border: 1px solid var(--border3); border-radius: 12px; background: var(--bg2); color: var(--text); font-size: 15px; font-family: inherit; resize: none; outline: none; min-height: 42px; max-height: 120px; }
+.chat-input-wrap textarea:focus { border-color: var(--accent); }
+.chat-send { padding: 0 16px; background: var(--accent); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; }
+.chat-send:hover { background: var(--accent2); }
+.chat-send:disabled { opacity: 0.5; cursor: default; }
+.chat-typing { color: var(--text5); font-size: 13px; padding: 4px 0; }
 </style>
 </head>
 <body>
 
+<button class="settings-btn" onclick="openSettings()" title="设置">&#9881;</button>
 <div class="theme-toggle" onclick="toggleTheme()" title="切换主题"></div>
+
+<!-- Settings overlay -->
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel">
+    <h3>API 设置</h3>
+    <div class="settings-field">
+      <label>API Key</label>
+      <input type="password" id="cfg-key" placeholder="sk-...">
+    </div>
+    <div class="settings-field">
+      <label>Base URL</label>
+      <input type="text" id="cfg-base" placeholder="https://api.openai.com">
+      <div class="settings-hint">OpenAI 兼容接口地址</div>
+    </div>
+    <div class="settings-field">
+      <label>Path</label>
+      <input type="text" id="cfg-path" placeholder="/v1/chat/completions">
+    </div>
+    <div class="settings-field">
+      <label>Model</label>
+      <input type="text" id="cfg-model" placeholder="gpt-3.5-turbo">
+    </div>
+    <div class="settings-actions">
+      <button class="settings-cancel" onclick="closeSettings()">取消</button>
+      <button class="settings-save" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
 
 <nav>
   <button class="active" onclick="showSection('flashcard')">闪卡</button>
   <button onclick="showSection('quiz')">测验</button>
   <button onclick="showSection('daily')">每日一句</button>
+  <button onclick="showSection('chat')">聊天</button>
 </nav>
 
 <div id="flashcard" class="section active">
@@ -209,6 +276,19 @@ nav button.active, nav button:hover { background: var(--accent); color: white; b
     </div>
   </div>
   <button class="daily-refresh" onclick="showDaily()">换一句</button>
+</div>
+
+<div id="chat" class="section" style="padding:0;">
+  <div class="chat-container">
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-empty" id="chat-empty">在左上角 ⚙ 填写 API 配置后即可开始聊天</div>
+    </div>
+    <div class="chat-typing" id="chat-typing" style="display:none;">正在回复...</div>
+    <div class="chat-input-wrap">
+      <textarea id="chat-input" placeholder="输入消息..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" id="chat-send" onclick="sendChat()">发送</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -506,6 +586,120 @@ function showSection(id) {
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
+}
+
+// --- Settings ---
+function openSettings() {
+  const cfg = JSON.parse(localStorage.getItem('clawd-api') || '{}');
+  document.getElementById('cfg-key').value = cfg.key || '';
+  document.getElementById('cfg-base').value = cfg.base || '';
+  document.getElementById('cfg-path').value = cfg.path || '';
+  document.getElementById('cfg-model').value = cfg.model || '';
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+function saveSettings() {
+  const cfg = {
+    key: document.getElementById('cfg-key').value.trim(),
+    base: document.getElementById('cfg-base').value.trim(),
+    path: document.getElementById('cfg-path').value.trim(),
+    model: document.getElementById('cfg-model').value.trim()
+  };
+  localStorage.setItem('clawd-api', JSON.stringify(cfg));
+  closeSettings();
+}
+function getApiConfig() {
+  const cfg = JSON.parse(localStorage.getItem('clawd-api') || '{}');
+  return {
+    key: cfg.key || '',
+    base: (cfg.base || 'https://api.openai.com').replace(/\/+$/, ''),
+    path: cfg.path || '/v1/chat/completions',
+    model: cfg.model || 'gpt-3.5-turbo'
+  };
+}
+
+// --- Chat ---
+let chatHistory = [];
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+function addBubble(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'chat-bubble ' + cls;
+  el.textContent = text;
+  const box = document.getElementById('chat-messages');
+  const empty = document.getElementById('chat-empty');
+  if (empty) empty.style.display = 'none';
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+  return el;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const cfg = getApiConfig();
+  if (!cfg.key) {
+    addBubble('请先在左上角 ⚙ 设置 API Key', 'error');
+    return;
+  }
+
+  input.value = '';
+  autoResize(input);
+  addBubble(text, 'user');
+  chatHistory.push({ role: 'user', content: text });
+
+  const sendBtn = document.getElementById('chat-send');
+  const typing = document.getElementById('chat-typing');
+  sendBtn.disabled = true;
+  typing.style.display = 'block';
+
+  try {
+    const url = cfg.base + cfg.path;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + cfg.key
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: chatHistory,
+        max_tokens: 2048
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(res.status + ': ' + err.substring(0, 200));
+    }
+
+    const data = await res.json();
+    const reply = data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content
+      : '(空回复)';
+    chatHistory.push({ role: 'assistant', content: reply });
+    addBubble(reply, 'bot');
+  } catch (e) {
+    addBubble('请求失败: ' + e.message, 'error');
+  } finally {
+    sendBtn.disabled = false;
+    typing.style.display = 'none';
+  }
 }
 </script>
 </body>
