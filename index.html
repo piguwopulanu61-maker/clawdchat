@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c4aeb4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Clawd English</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -206,6 +210,11 @@ const dailySentences = [
   { en: "The difference between ordinary and extraordinary is that little extra.", cn: "普通和非凡之间的区别就在于那一点额外的努力。", grammar: "between...and... 介词短语作后置定语；that 指示代词强调 little extra。" },
   { en: "Believe you can and you're halfway there.", cn: "相信你能做到，你就已经成功了一半。", grammar: "祈使句 + and + 陈述句结构，表示「如果……就……」；halfway 作副词表程度。" }
 ];
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
 
 // Load words on DOM ready
 document.addEventListener('DOMContentLoaded', function() {

@@ -1,0 +1,17 @@
+{
+  "name": "Clawd English",
+  "short_name": "Clawd",
+  "description": "英语词汇学习小工具",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f2ec",
+  "theme_color": "#c4aeb4",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23c4aeb4'/><text x='50' y='62' font-size='50' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>C</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
