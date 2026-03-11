@@ -6,10 +6,10 @@
 <title>Clawd English</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0f0; color: #5a5060; min-height: 100vh; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f2ec; color: #5a5060; min-height: 100vh; }
 
 /* Nav */
-nav { display: flex; justify-content: center; gap: 8px; padding: 16px; background: #faf7f7; border-bottom: 1px solid #e8dede; position: sticky; top: 0; z-index: 10; }
+nav { display: flex; justify-content: center; gap: 8px; padding: 16px; background: #f7f4ee; border-bottom: 1px solid #e8e2d8; position: sticky; top: 0; z-index: 10; }
 nav button { padding: 10px 20px; border: 1px solid #ddd0d0; border-radius: 20px; background: transparent; color: #a0909a; cursor: pointer; font-size: 15px; transition: all 0.3s; }
 nav button.active, nav button:hover { background: #c4aeb4; color: white; border-color: #c4aeb4; }
 
@@ -18,7 +18,7 @@ nav button.active, nav button:hover { background: #c4aeb4; color: white; border-
 .section.active { display: block; }
 
 /* Stats bar */
-.stats-bar { display: flex; justify-content: space-around; padding: 16px; background: #faf7f7; border-radius: 12px; margin-bottom: 24px; border: 1px solid #e8dede; }
+.stats-bar { display: flex; justify-content: space-around; padding: 16px; background: #f7f4ee; border-radius: 12px; margin-bottom: 24px; border: 1px solid #e8e2d8; }
 .stat { text-align: center; }
 .stat-num { font-size: 28px; font-weight: 700; color: #b8969e; }
 .stat-label { font-size: 12px; color: #a09098; margin-top: 4px; }
@@ -28,8 +28,8 @@ nav button.active, nav button:hover { background: #c4aeb4; color: white; border-
 .card { width: 100%; min-height: 280px; position: relative; cursor: pointer; transition: transform 0.6s; transform-style: preserve-3d; }
 .card.flipped { transform: rotateY(180deg); }
 .card-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; border-radius: 16px; backface-visibility: hidden; }
-.card-front { background: linear-gradient(135deg, #faf7f7, #f0e8ea); border: 1px solid #e0d4d6; }
-.card-back { background: linear-gradient(135deg, #f8f0f2, #f0e6ea); border: 1px solid #e0d4d6; transform: rotateY(180deg); }
+.card-front { background: linear-gradient(135deg, #f7f4ee, #f0ece4); border: 1px solid #e0dad0; }
+.card-back { background: linear-gradient(135deg, #f5f2ec, #f0ece6); border: 1px solid #e0dad0; transform: rotateY(180deg); }
 .card-word { font-size: 36px; font-weight: 700; color: #4a3e48; margin-bottom: 8px; }
 .card-phonetic { font-size: 16px; color: #a09098; margin-bottom: 4px; }
 .card-category { font-size: 12px; color: #b8969e; background: rgba(196,174,180,0.15); padding: 4px 12px; border-radius: 10px; }
